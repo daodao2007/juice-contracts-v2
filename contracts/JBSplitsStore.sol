@@ -23,6 +23,14 @@ error PREVIOUS_LOCKED_SPLITS_NOT_INCLUDED();
 /**
   @notice
   Stores splits for each project.
+
+  @dev
+  Adheres to:
+  IJBSplitsStore: General interface for the methods in this contract that interact with the blockchain's state according to the Juicebox protocol's rules.
+
+  @dev
+  Inherits from:
+  JBOperatable: Includes convenience functionality for checking a message sender's permissions before executing certain transactions.
 */
 contract JBSplitsStore is IJBSplitsStore, JBOperatable {
   //*********************************************************************//
@@ -87,15 +95,15 @@ contract JBSplitsStore is IJBSplitsStore, JBOperatable {
   //*********************************************************************//
 
   /**
-  @notice 
-  Get all splits for the specified project ID, within the specified domain, for the specified group.
+    @notice 
+    Get all splits for the specified project ID, within the specified domain, for the specified group.
 
-  @param _projectId The ID of the project to get splits for.
-  @param _domain An identifier within which the returned splits should be considered active.
-  @param _group The identifying group of the splits.
+    @param _projectId The ID of the project to get splits for.
+    @param _domain An identifier within which the returned splits should be considered active.
+    @param _group The identifying group of the splits.
 
-  @return An array of all splits for the project.
-*/
+    @return An array of all splits for the project.
+  */
   function splitsOf(
     uint256 _projectId,
     uint256 _domain,
@@ -198,12 +206,16 @@ contract JBSplitsStore is IJBSplitsStore, JBOperatable {
       // Validate the total does not exceed the expected value.
       if (_percentTotal > JBConstants.SPLITS_TOTAL_PERCENT) revert INVALID_TOTAL_PERCENT();
 
+      // Prefer claimed in bit 0.
       uint256 _packedSplitParts1 = _splits[_i].preferClaimed ? 1 : 0;
+      // Percent in bits 1-32.
       _packedSplitParts1 |= _splits[_i].percent << 1;
+      // ProjectId in bits 33-88.
       _packedSplitParts1 |= _splits[_i].projectId << 33;
+      // Beneficiary in bits 89-248.
       _packedSplitParts1 |= uint256(uint160(address(_splits[_i].beneficiary))) << 89;
 
-      // Store the first spit part.
+      // Store the first split part.
       _packedSplitParts1Of[_projectId][_domain][_group][_i] = _packedSplitParts1;
 
       // If there's data to store in the second packed split part, pack and store.
@@ -211,9 +223,14 @@ contract JBSplitsStore is IJBSplitsStore, JBOperatable {
         // Locked until should be within a uint48
         if (_splits[_i].lockedUntil > type(uint48).max) revert INVALID_LOCKED_UNTIL();
 
+        // Locked until in bits 0-47.
         uint256 _packedSplitParts2 = uint48(_splits[_i].lockedUntil);
+        // Locked until in bits 48-207.
         _packedSplitParts2 |= uint256(uint160(address(_splits[_i].allocator))) << 48;
+
+        // Store the second split part.
         _packedSplitParts2Of[_projectId][_domain][_group][_i] = _packedSplitParts2;
+
         // Otherwise if there's a value stored in the indexed position, delete it.
       } else if (_packedSplitParts2Of[_projectId][_domain][_group][_i] > 0)
         delete _packedSplitParts2Of[_projectId][_domain][_group][_i];
@@ -227,7 +244,7 @@ contract JBSplitsStore is IJBSplitsStore, JBOperatable {
 
   /**
     @notice 
-    Unpack splits' packed stored values into easy-to-work-with spit structs.
+    Unpack splits' packed stored values into easy-to-work-with split structs.
 
     @param _projectId The ID of the project to which the split belongs.
     @param _domain The identifier within which the returned splits should be considered active.
@@ -253,9 +270,13 @@ contract JBSplitsStore is IJBSplitsStore, JBOperatable {
 
       JBSplit memory _split;
 
+      // Prefer claimed in bit 0.
       _split.preferClaimed = (_packedSplitPart1 & 1) == 1;
+      // Percent in bits 1-32.
       _split.percent = uint256(uint32(_packedSplitPart1 >> 1));
+      // ProjectId in bits 33-88.
       _split.projectId = uint256(uint56(_packedSplitPart1 >> 33));
+      // Beneficiary in bits 89-248.
       _split.beneficiary = payable(address(uint160(_packedSplitPart1 >> 89)));
 
       // Get a reference to the second packed data.
@@ -263,7 +284,9 @@ contract JBSplitsStore is IJBSplitsStore, JBOperatable {
 
       // If there's anything in it, unpack.
       if (_packedSplitPart2 > 0) {
+        // Locked until in bits 0-47.
         _split.lockedUntil = uint256(uint48(_packedSplitPart2));
+        // Locked until in bits 48-207.
         _split.allocator = IJBSplitAllocator(address(uint160(_packedSplitPart2 >> 48)));
       }
 
