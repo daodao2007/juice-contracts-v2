@@ -292,7 +292,7 @@ abstract contract JBPaymentTerminal is
     uint256 _amount,
     uint256 _currency,
     uint256 _minReturnedTokens,
-    string memory _memo
+    string calldata _memo
   ) external override nonReentrant {
     // Record the distribution.
     (JBFundingCycle memory _fundingCycle, uint256 _distributedAmount) = store.recordDistributionFor(
@@ -590,7 +590,7 @@ abstract contract JBPaymentTerminal is
   function addToBalanceOf(
     uint256 _amount,
     uint256 _projectId,
-    string memory _memo
+    string calldata _memo
   ) external payable override nonReentrant isTerminalOfProject(_projectId) {
     // If this terminal's token isn't ETH, make sure no msg.value was sent, then transfer the tokens in from msg.sender.
     if (token != JBTokens.ETH) {
