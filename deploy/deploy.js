@@ -68,7 +68,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
     args: [JBOperatorStore.address, JBProjects.address, JBDirectory.address],
   });
 
-  const JBSplitStore = await deploy('JBSplitsStore', {
+  const JBSplitsStore = await deploy('JBSplitsStore', {
     ...baseDeployArgs,
     args: [JBOperatorStore.address, JBProjects.address, JBDirectory.address],
   });
@@ -81,7 +81,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
       JBDirectory.address,
       JBFundingCycleStore.address,
       JBTokenStore.address,
-      JBSplitStore.address,
+      JBSplitsStore.address,
     ],
   });
 
